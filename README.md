@@ -7,31 +7,33 @@ This project implements a robust, asynchronous Order Fulfillment microservice fo
 
 The service follows an event-driven architecture where order events are exchanged asynchronously through RabbitMQ.
 
+```mermaid
 flowchart TD
     A["External Order Service"]
-    B["RabbitMQ<br/>order.events Exchange"]
+    B["RabbitMQ - order.events Exchange"]
     C["order.placed.queue"]
     D["Order Fulfillment Service"]
     E["Event Validation"]
     F["Idempotency Check"]
-    G[("MySQL<br/>orders table")]
+    G[("MySQL - orders table")]
     H["Business Processing"]
     I["Order Event Publisher"]
     J["order.processed Event"]
-    K["DLX<br/>dlx.order.events"]
-    L["DLQ<br/>order.dlq"]
+    K["DLX - dlx.order.events"]
+    L["DLQ - order.dlq"]
+    M["ACK"]
+    N["Retry"]
 
     A -->|"order.placed"| B
     B -->|"order.placed"| C
     C --> D
-
     D --> E
 
     E -->|"Valid"| F
     E -->|"Invalid"| K
 
-    F -->|"Duplicate<br/>PROCESSED"| M["ACK"]
-    F -->|"New / Retry<br/>PENDING or FAILED"| G
+    F -->|"Duplicate - PROCESSED"| M
+    F -->|"New / Retry - PENDING or FAILED"| G
 
     G -->|"PROCESSING"| H
     H -->|"Success"| G
@@ -40,12 +42,13 @@ flowchart TD
     I -->|"order.processed"| J
     J --> B
 
-    D -->|"Transient Error"| N["Retry"]
+    D -->|"Transient Error"| N
     N -->|"Attempts Remaining"| C
     N -->|"Max Attempts Reached"| K
 
     C -->|"NACK / No Requeue"| K
-    K -->|"order.placed"| L
+```
+
 
 **Components:**
 
