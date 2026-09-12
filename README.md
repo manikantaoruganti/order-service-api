@@ -5,19 +5,28 @@ This project implements a robust, asynchronous Order Fulfillment microservice fo
 
 ## Architecture
 
-The service follows an event-driven architecture, where events flow between different components via RabbitMQ.
+The service follows an event-driven architecture where order events are exchanged asynchronously through RabbitMQ.
 
 ```mermaid
 flowchart TD
-    Producer[Order Service (External)] --> Exchange[order.events (Topic)]
-    Exchange -- order.placed --> Queue[order.placed.queue]
-    Queue --> Consumer[Order Fulfillment Service]
-    Consumer --> MySQL[(MySQL Database)]
-    Consumer --> Publisher[Order Event Publisher]
-    Publisher -- order.processed --> Exchange
-    Queue -- Dead Letter --> DLX[dlx.order.events (Direct)]
-    DLX -- order.placed --> DLQ[order.dlq]
-```
+    A[External Order Service]
+    B[order.events Exchange]
+    C[order.placed.queue]
+    D[Order Fulfillment Service]
+    E[(MySQL Database)]
+    F[Order Event Publisher]
+    G[dlx.order.events]
+    H[order.dlq]
+
+    A -->|order.placed| B
+    B -->|order.placed| C
+    C --> D
+    D --> E
+    D --> F
+    F -->|order.processed| B
+
+    C -->|Failed Message| G
+    G -->|order.placed| H
 
 **Components:**
 
