@@ -1,4 +1,4 @@
-```markdown
+
 # Event-Driven Order Fulfillment Service
 
 This project implements a robust, asynchronous Order Fulfillment microservice for an e-commerce system. It consumes order placement events from RabbitMQ, processes them, updates order status in MySQL, and publishes order processed events. The service is designed with idempotency, fault tolerance, and clean architecture principles in mind.
