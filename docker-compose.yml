@@ -1,0 +1,82 @@
+version: '3.8'
+
+services:
+  order-processor-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: order-processor-service
+    ports:
+      - "8080:8080"
+    environment:
+      # Application Configuration
+      SERVER_PORT: 8080
+
+      # MySQL Configuration
+      DB_HOST: mysql
+      DB_PORT: 3306
+      DB_NAME: orderdb
+      DB_USERNAME: ${MYSQL_USER}
+      DB_PASSWORD: ${MYSQL_PASSWORD}
+
+      # RabbitMQ Configuration
+      RABBITMQ_HOST: rabbitmq
+      RABBITMQ_PORT: 5672
+      RABBITMQ_USERNAME: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+
+      # RabbitMQ Retry Policy (Optional, defaults in application.yml)
+      RABBITMQ_RETRY_MAX_ATTEMPTS: 3
+      RABBITMQ_RETRY_INITIAL_INTERVAL_MS: 1000
+      RABBITMQ_RETRY_MAX_INTERVAL_MS: 10000
+      RABBITMQ_RETRY_MULTIPLIER: 2.0
+    depends_on:
+      mysql:
+        condition: service_healthy
+      rabbitmq:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s # Give the app time to start before first health check
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # AMQP port
+      - "15672:15672" # Management UI port
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD}
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "check_port_connectivity"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s # Give RabbitMQ time to start before first health check
+
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: orderdb
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./db_init:/docker-entrypoint-initdb.d # Initialize database schema
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "${MYSQL_USER}", "-p${MYSQL_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s # Give MySQL time to start before first health check
+
+volumes:
+  mysql_data:
