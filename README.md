@@ -9,25 +9,14 @@ The service follows an event-driven architecture where order events are exchange
 
 ```mermaid
 flowchart TD
-    A[External Order Service]
-    B[order.events Exchange]
-    C[order.placed.queue]
-    D[Order Fulfillment Service]
-    E[(MySQL Database)]
-    F[Order Event Publisher]
-    G[dlx.order.events]
-    H[order.dlq]
-
-    A -->|order.placed| B
-    B -->|order.placed| C
-    C --> D
-    D --> E
-    D --> F
+    A[External Order Service] -->|order.placed| B[order.events Exchange]
+    B -->|order.placed| C[order.placed.queue]
+    C --> D[Order Fulfillment Service]
+    D --> E[(MySQL Database)]
+    D --> F[Order Event Publisher]
     F -->|order.processed| B
-
-    C -->|Failed Message| G
-    G -->|order.placed| H
-
+    C -->|Failed Message| G[dlx.order.events]
+    G -->|order.placed| H[order.dlq]
 **Components:**
 
 *   **Order Service (External)**: Represents an upstream service that places orders and publishes `OrderPlacedEvent` messages to the `order.events` exchange. (Not implemented in this project).
